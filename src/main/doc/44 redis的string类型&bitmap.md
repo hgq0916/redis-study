@@ -1,0 +1,219 @@
+JVM:一个线程的成本  线程栈1MB
+
+1.线程多了，调度成本
+
+2.内存成本,线程栈默认空间是1MB
+
+多路复用：减少系统调用
+
+epoll：mmap存储注册的连接fd
+
+epoll有个共享空间mmap，共享空间维护一个红黑树，调用epoll_create会这个红黑树上添加一个fd，
+
+当红黑树的fd有事件发生时，会这个fd添加到一个链表上，
+
+调用epoll_ctl，会返回有事件发生的fd集合（链表）；
+
+![image-20200825180013955](44 redis的string类型&bitmap.assets/image-20200825180013955.png)
+
+#### redis的使用
+
+![image-20200830094903815](44 redis的string类型&bitmap.assets/image-20200830094903815.png)
+
+redis处理用户数据：只有一个线程去做
+
+顺序性：每连接内的命令顺序
+
+连接redis，
+
+![image-20200825181104298](44 redis的string类型&bitmap.assets/image-20200825181104298.png)
+
+![image-20200830095706912](44 redis的string类型&bitmap.assets/image-20200830095706912.png)
+
+redis-cli -h:帮助
+
+redis-cli p 6380
+
+\> set k380:1 hello  将数据存入1号库
+
+![image-20200825182727465](44 redis的string类型&bitmap.assets/image-20200825182727465.png)连接8号库
+
+帮助：
+
+![image-20200825182841140](44 redis的string类型&bitmap.assets/image-20200825182841140.png)
+
+help  @generic   通用组，全局list，基本命令
+
+keys *  :查询所有的key
+
+flushall,flushdb:清库
+
+help @string
+
+![image-20200825183511686](44 redis的string类型&bitmap.assets/image-20200825183511686.png)
+
+参数：nx  不存在则创建，xx存在则可以设置
+
+mset  key1 value1  key2 value :同时设置多个
+
+mget key1 key2:同时取出多个值
+
+getset:取回旧值，设置新值
+
+append:追加一个字符串
+
+getrange:截取
+
+setrange:修改字符串的某个部分
+
+![image-20200825184836859](44 redis的string类型&bitmap.assets/image-20200825184836859.png)
+
+正反向索引：
+
+正向：从左边0开始数
+
+反向：从右边-1开始数
+
+![image-20200825185038613](44 redis的string类型&bitmap.assets/image-20200825185038613.png)
+
+![image-20200825185120783](44 redis的string类型&bitmap.assets/image-20200825185120783.png)
+
+![image-20200825185151031](44 redis的string类型&bitmap.assets/image-20200825185151031.png)
+
+strlen k1:查询长度
+
+<img src="44 redis的string类型&amp;bitmap.assets/image-20200825185259027.png" alt="image-20200825185259027" style="zoom:150%;" />
+
+全局命令：
+
+type key  :查询key对应的value类型
+
+![image-20200830102359761](44 redis的string类型&bitmap.assets/image-20200830102359761.png)
+
+**object命令**：
+
+object encoding k1:查询k1对应value的编码为"int";
+
+object encoding k2:查询k1对应value的编码为"embstr";
+
+![image-20200830102756719](44 redis的string类型&bitmap.assets/image-20200830102756719.png)
+
+incrby k1 22:给k1加22；
+
+decrby k1 22  :给k1减22；
+
+incrbyfloat k1 0.5:给k1加上一个浮点数0.5;
+
+![image-20200830103153462](44 redis的string类型&bitmap.assets/image-20200830103153462.png)
+
+![image-20200830103303481](44 redis的string类型&bitmap.assets/image-20200830103303481.png)
+
+![image-20200830103643802](44 redis的string类型&bitmap.assets/image-20200830103643802.png)
+
+![image-20200830103728093](44 redis的string类型&bitmap.assets/image-20200830103728093.png)
+
+![image-20200830103806986](44 redis的string类型&bitmap.assets/image-20200830103806986.png)
+
+##### redis二进制安全
+
+```
+redis中的二进制安全：
+二进制安全
+```
+
+C字符串中的字符必须符合某种编码（比如ASCII），并且除了字符串的末尾之外，字符串里面不能包含空字符，否则最先被程序读入的空字符将被误认为是字符串结尾，这些限制使得C字符串只能保存文本数据，而不能保存像图片、音频、视频、压缩文件这样的二进制数据。
+
+举个例子，如果有一种使用空字符来分割多个单词的特殊数据格式，如图2-17所示，那么这种格式就不能使用C字符串来保存，因为C字符串所用的函数只会识别出其中的"Redis"，而忽略之后的"Cluster"。
+
+ 
+
+虽然数据库一般用于保存文本数据，但使用数据库来保存二进制数据的场景也不少见，因此，为了确保Redis可以适用于各种不同的使用场景，SDS的 API都是二进制安全的（b[![img](http://s9.51cto.com/wyfs02/M00/2D/24/wKioL1OVEmig6d0eAAAm1wqt_cU234.jpg)](http://s9.51cto.com/wyfs02/M00/2D/24/wKioL1OVEmig6d0eAAAm1wqt_cU234.jpg)inary-safe），所有SDS API都会以处理二进制的方式来处理SDS存放在buf数组里的数据，程序不会对其中的数据做任何限制、过滤、或者假设，数据在写入时是什么样的，它被读 取时就是什么样。
+
+这也是我们将SDS的buf属性称为字节数组的原因——Redis不是用这个数组来保存字符，而是用它来保存一系列二进制数据。
+
+例如，使用SDS来保存之前提到的特殊数据格式就没有任何问题，因为SDS使用len属性的值而不是空字符来判断字符串是否结束，如图2-18所示。
+
+[![img](http://s8.51cto.com/wyfs02/M02/2D/23/wKiom1OVEp3z4iJfAAA6uSyKluk863.jpg)](http://s8.51cto.com/wyfs02/M02/2D/23/wKiom1OVEp3z4iJfAAA6uSyKluk863.jpg)
+
+通过使用二进制安全的SDS，而不是C字符串，使得Redis不仅可以保存文本数据，还可以保存任意格式的二进制数据。
+
+![image-20200830104109244](44 redis的string类型&bitmap.assets/image-20200830104109244.png)
+
+redis是按字节对字符串进行存储，如果有数值计算，
+
+需要类型转换，
+
+![image-20200830104230190](44 redis的string类型&bitmap.assets/image-20200830104230190.png)
+
+将xshell的编码由utf8改成gbk，
+
+然后执行![image-20200830104340851](44 redis的string类型&bitmap.assets/image-20200830104340851.png)
+
+![image-20200830104450934](44 redis的string类型&bitmap.assets/image-20200830104450934.png)
+
+![image-20200830104600371](44 redis的string类型&bitmap.assets/image-20200830104600371.png)
+
+![image-20200830104714934](44 redis的string类型&bitmap.assets/image-20200830104714934.png)
+
+![image-20200830150803560](44 redis的string类型&bitmap.assets/image-20200830150803560.png)
+
+GETSET 和使用GET、SET的对比：减少一次网络通信
+
+MSETNX:同时设置多个key，可以保证原子性，要么同时成功，要么同时失败
+
+![image-20200830151135013](44 redis的string类型&bitmap.assets/image-20200830151135013.png)
+
+##### bitmap
+
+help setbit ：设置二进制位的数值
+
+![image-20200830154835606](44 redis的string类型&bitmap.assets/image-20200830154835606.png)
+
+![image-20200830154712730](44 redis的string类型&bitmap.assets/image-20200830154712730.png)
+
+man ascii:a查看asscii码
+
+![image-20200830154946535](44 redis的string类型&bitmap.assets/image-20200830154946535.png)
+
+![image-20200830155429103](44 redis的string类型&bitmap.assets/image-20200830155429103.png)
+
+![image-20200830155958320](44 redis的string类型&bitmap.assets/image-20200830155958320.png)
+
+--raw：尝试使用客户端的编码显示字符
+
+help @string
+
+help bitpos:获取二进制位第一次出现的位置
+
+![image-20200830160338703](44 redis的string类型&bitmap.assets/image-20200830160338703.png)
+
+bitcount: 统计二进制位中1出现的次数
+
+![image-20200830160844527](44 redis的string类型&bitmap.assets/image-20200830160844527.png)
+
+bitop:按位操作多个key，将结果放入目标key
+
+![image-20200830161703195](44 redis的string类型&bitmap.assets/image-20200830161703195.png)
+
+![image-20200830161830844](44 redis的string类型&bitmap.assets/image-20200830161830844.png)
+
+![image-20200830162740212](44 redis的string类型&bitmap.assets/image-20200830162740212.png)
+
+![image-20200830162714442](44 redis的string类型&bitmap.assets/image-20200830162714442.png)
+
+![image-20200830163750736](44 redis的string类型&bitmap.assets/image-20200830163750736.png)
+
+![image-20200830163842418](44 redis的string类型&bitmap.assets/image-20200830163842418.png)
+
+![image-20200830164257144](44 redis的string类型&bitmap.assets/image-20200830164257144.png)
+
+![image-20200830164543029](44 redis的string类型&bitmap.assets/image-20200830164543029.png)
+
+redis的key是对象，包括key，type，encoding
+
+![image-20200830165054282](44 redis的string类型&bitmap.assets/image-20200830165054282.png)
+
+数值操作：抢购，秒杀允许结果有误差，对金融数据不适合使用redis
+
+![image-20200830165258789](44 redis的string类型&bitmap.assets/image-20200830165258789.png)
+
