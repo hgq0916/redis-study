@@ -112,7 +112,7 @@ make是linux下的编译命令，MakeFile提供编译信息
 
 readme.md:安装redis
 
-MakeFile:  会进入src目录/Makefile 
+MakeFile指向了src目录/Makefile 目录
 
 编译:把源码编译成可执行程序
 
@@ -179,8 +179,6 @@ added to runlevels 345:指定运行级别为345级别
 
 启动redis
 ```
-
-
 
 cd /etc/init.d 目录，
 
@@ -255,7 +253,7 @@ kafka是基于零拷贝技术，在Linux底层对应的是sendfile和mmap
 
 ![image-20210603230010920](43 redis 介绍及NIO原理介绍.assets/image-20210603230010920.png)
 
-当生产者将消息通过网关发送过来，kafka接收到消息，通过mmap将消息内容直接写入共享空间，再通过操作系统将共享空间的数据写入文件，不需要用户态到内核态的数据拷贝，而消息者获取消息时，数据从文件拷贝到共享空间，再通过sendfile系统调用直接写入消息者连接的fd
+当生产者将消息通过网关发送过来，kafka接收到消息，通过mmap将消息内容直接写入共享空间，再通过操作系统将共享空间的数据写入文件，不需要用户态到内核态的数据拷贝，而消息者获取消息时，数据从文件拷贝到共享空间，再通过sendfile系统调用直接写入消费者连接的fd
 
 ![image-20210603224241237](43 redis 介绍及NIO原理介绍.assets/image-20210603224241237.png)
 
